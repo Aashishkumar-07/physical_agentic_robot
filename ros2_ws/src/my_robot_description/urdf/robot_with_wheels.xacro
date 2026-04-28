@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<robot name="vroom" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+    <!-- sensor plugin for lidar and camera -->
+    <gazebo>
+        <plugin name="gz::sim::systems::Sensors" filename="gz-sim-sensors-system">
+            <render_engine>ogre2</render_engine>
+        </plugin>
+    </gazebo>
+    <xacro:include filename = "common_properties.xacro" />
+    <xacro:include filename = "mobile_base.xacro" />
+    <xacro:include filename = "mobile_base_gazebo.xacro" />
+    <xacro:include filename = "camera.xacro" />
+    <xacro:include filename = "lidar_sensor.xacro" />
+</robot>
+

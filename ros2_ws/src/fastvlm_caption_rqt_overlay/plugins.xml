@@ -1,0 +1,5 @@
+<library path="caption_layer">
+  <class type="fastvlm_caption_rqt_overlay::CaptionLayer" base_class_type="rqt_image_overlay_layer::PluginInterface">
+    <description>This is an rqt_image_overlay layer for FastVLM Captions</description>
+  </class>
+</library>

@@ -1,0 +1,43 @@
+<launch>
+    <let name="urdf_path" value="$(find-pkg-share my_robot_description)/urdf/robot_with_wheels.xacro"/>
+    <let name="gazebo_config_path" value="$(find-pkg-share my_robot_bringup)/config/gazebo_bridge.yaml" />
+    <let name="gazebo_custom_world" value="$(find-pkg-share aws_robomaker_small_warehouse_world)/worlds/small_warehouse/small_warehouse.world" />
+    <let name="aws_robomaker_map" value= "$(find-pkg-share my_robot_bringup)/maps/aws_robomaker_small_warehouse_world.yaml" />
+    <let name="urdf_rviz_config" value= "$(find-pkg-share my_robot_bringup)/config/rviz/urdf_config.rviz" />
+
+    <node pkg="robot_state_publisher" exec="robot_state_publisher">
+        <param name="robot_description"  value="$(command 'xacro $(var urdf_path)')" />
+        <param name="use_sim_time" value="true"/>
+    </node>
+
+    <node pkg="rviz2" exec="rviz2" output="screen" args= "-d $(var urdf_rviz_config)">
+        <param name="use_sim_time" value="true"/>        
+    </node>
+
+    <node pkg="ros_gz_bridge" exec="parameter_bridge">
+        <param name="config_file" value="$(var gazebo_config_path)"/>
+        <param name="use_sim_time" value="true"/>  
+    </node>
+    
+    <include file="$(find-pkg-share ros_gz_sim)/launch/gz_sim.launch.py">
+        <arg name="gz_args" value="$(var gazebo_custom_world) -r"/>
+        <arg name="use_sim_time" value="true"/>
+    </include>
+
+    <node pkg="ros_gz_sim" exec="create" args="-topic robot_description">
+        <param name="use_sim_time" value="true"/>  
+    </node>
+
+    
+    <node pkg="depth_anything_3_ros2" exec="depth_anything_node" output="screen">
+        <param name="use_sim_time" value="true"/>
+    </node>
+
+
+    <include file="$(find-pkg-share nav2_bringup)/launch/bringup_launch.py">
+        <arg name="map" value="$(var aws_robomaker_map)"/>
+        <arg name="use_sim_time" value="true"/>
+        <!-- <arg name="params_file" value="$(find-pkg-share my_robot_bringup)/config/nav2_params.yaml"/> -->
+        <!-- <arg name="params_file" value="$(find-pkg-share my_robot_bringup)/config/amcl_initial_pose.yaml"/> -->
+    </include>
+</launch>
