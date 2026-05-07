@@ -37,7 +37,7 @@
     <include file="$(find-pkg-share nav2_bringup)/launch/bringup_launch.py">
         <arg name="map" value="$(var aws_robomaker_map)"/>
         <arg name="use_sim_time" value="true"/>
-        <!-- <arg name="params_file" value="$(find-pkg-share my_robot_bringup)/config/nav2_params.yaml"/> -->
+        <arg name="params_file" value="$(find-pkg-share my_robot_bringup)/config/nav2_params.yaml"/>
         <!-- <arg name="params_file" value="$(find-pkg-share my_robot_bringup)/config/amcl_initial_pose.yaml"/> -->
     </include>
 </launch>
