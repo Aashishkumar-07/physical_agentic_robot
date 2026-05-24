@@ -2,14 +2,17 @@ from langchain_core.messages import (BaseMessage,HumanMessage,SystemMessage)
 from typing import Annotated, Annotated, Sequence, Any, Dict, TypedDict
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langgraph.graph import StateGraph, END, add_messages
+from langgraph.checkpoint.memory import InMemorySaver  
 from langchain.chat_models import init_chat_model
 from langchain_core.tools import StructuredTool
 from langgraph.prebuilt import ToolNode
 from pydantic import create_model
 from dotenv import load_dotenv
+import uuid
 from pathlib import Path
 import asyncio
 import os
+
 
 load_dotenv()
 SYSTEM_PROMPT = Path("./system_prompt.md").read_text(encoding="utf-8")
@@ -190,23 +193,26 @@ async def main():
                 END: END
             }
         )
-        app = graph.compile()
+        checkpointer = InMemorySaver()
+        app = graph.compile(checkpointer=checkpointer)
 
         # -----------------------------
         # Run Query
         # -----------------------------
-        coversation_history = []
+        
+        thread_id = uuid.uuid4()
         user_input = input("Enter your query for the robot: ")
-
         print(f"\n👤 User: {user_input}\n")
         while user_input != "exit":
-            coversation_history.append(HumanMessage(content=user_input))
-            result = await app.ainvoke({"messages": coversation_history})
+            result = await app.ainvoke(
+                {"messages": [HumanMessage(content=user_input)]},
+                {"configurable": {"thread_id": thread_id}},
+                )
 
             print(f" results[`messages`]: {result['messages']}")
             print(f"\n🤖 Final Answer:\n{result['messages'][-1].content}")
 
-            coversation_history  = result["messages"]
+        
             user_input = input("Enter your query for the robot (type 'exit' to quit): ")
 
     except Exception as e:
