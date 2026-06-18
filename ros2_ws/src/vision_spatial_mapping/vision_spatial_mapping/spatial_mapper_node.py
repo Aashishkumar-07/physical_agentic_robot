@@ -130,6 +130,7 @@ class SpatialGroundingNode(Node):
             p_map = do_transform_point(p_cam, transform_robot)
             self.get_logger().info(f"Point in map frame: X={p_map.point.x}, Y={p_map.point.y}, Z={p_map.point.z}")
 
+            # Need to revisit for performance on threading count
             future = self.thread_pool.submit(
                 self.upload_and_publish,
                 self.latest_rgb_image_depth_msg.camera_image,

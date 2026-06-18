@@ -29,6 +29,7 @@ async def main():
         model_registry = ModelRegistry()
         agent_registry = AgentRegistry(model_registry, tool_registry)
 
+        # Currently orchestrator agent has tools for navigation and subgraph dispatching
         orchestrator_agent = agent_registry.get_orchestrator_nav2_agent()
 
         # ===============================

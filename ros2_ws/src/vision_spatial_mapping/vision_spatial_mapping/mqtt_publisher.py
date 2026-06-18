@@ -58,7 +58,7 @@ class MQTTPublisher:
     def _connect(self):
         """
         Connect to RabbitMQ MQTT broker.
-        loop_start() launches a background networking thread.
+        loop_start() launches a background networking thread (non blocking main thread).
         """
 
         self.client.connect(host=self.host, port=self.port, keepalive=60)
