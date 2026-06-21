@@ -1,13 +1,14 @@
-from ..dispatcher.subgraph_dispatcher_tool import subgraph_dispatch, SubgraphName
+from robot_agent.dispatcher.subgraph_dispatcher_tool import subgraph_dispatch, SubgraphName
 from langchain_core.messages import (HumanMessage,SystemMessage, ToolMessage)
-from ..registry.model_registry import AgentRegistry, ModelRegistry
-from ..registry.mcp_tool_registry import MCPToolRegistry
+from robot_agent.registry.model_registry import AgentRegistry, ModelRegistry
+from robot_agent.registry.mcp_tool_registry import MCPToolRegistry
+from robot_agent.graph.search_graph import build_search_graph
+from robot_agent.graph.graph_state import MainGraphState
 from langgraph.checkpoint.memory import InMemorySaver
-from .search_graph import build_search_graph
 from langgraph.graph import StateGraph, END
-from .graph_state import MainGraphState
 from langgraph.prebuilt import ToolNode
 from langgraph.types import Command
+from typing import Literal
 from pathlib import Path
 import asyncio
 import uuid
@@ -50,7 +51,7 @@ async def main():
         # ===============================
         # Router Node
         # ===============================
-        async def router_node(state: MainGraphState):
+        async def router_node(state: MainGraphState) -> Command[Literal["tools", "planner", "__end__"]]:
             print("-" * 30 + "ENTERING ROUTER NODE " + "-" * 30)
             messages = state["messages"]
             last_message = messages[-1]

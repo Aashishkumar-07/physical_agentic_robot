@@ -1,8 +1,8 @@
 from langchain_core.messages import (AIMessage, SystemMessage)
-from ..registry.mcp_tool_registry import MCPToolRegistry
-from ..registry.model_registry import AgentRegistry
+from robot_agent.registry.mcp_tool_registry import MCPToolRegistry
+from robot_agent.registry.model_registry import AgentRegistry
+from robot_agent.graph.graph_state import SearchGraphState
 from langgraph.graph import StateGraph, END
-from .graph_state import SearchGraphState
 from langgraph.prebuilt import ToolNode
 from pathlib import Path
 

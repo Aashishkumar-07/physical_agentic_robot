@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor
 from typing import Optional
 import httpx
 import cv2
@@ -16,7 +17,7 @@ class HttpClient:
     simple blocking HTTP client is sufficient and asyncio is not needed.   
      """ 
 
-    def __init__(self,timeout: float = 2.0):
+    def __init__(self, timeout: float = 4.0):
         """
         Using HTTP/2 to reuse the same socket connection for multiple requests.
 
@@ -24,7 +25,12 @@ class HttpClient:
         uploads, payload size dominates header size, so the benefit is 
         relatively small compared to image compression.
         """
-        self.client = httpx.Client(http2=True,timeout=timeout)
+        self.client = httpx.Client(http2=True, timeout=timeout)
+        self.executor_pool = ThreadPoolExecutor(max_workers=1)
+
+        # Track currently running caption job
+        self.caption_future = None
+
 
     def generate_caption(self, cv_image) -> Optional[str]:
         """
@@ -43,7 +49,7 @@ class HttpClient:
                 content=image_bytes,
                 headers={"Content-Type": "image/jpeg"} 
             )
-
+            
             if response.status_code != 200:
                 print(f"HTTP request failed with status code: {response.status_code}")
                 return "Error in generating caption"

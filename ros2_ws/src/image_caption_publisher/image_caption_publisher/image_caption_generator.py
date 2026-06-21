@@ -1,4 +1,4 @@
-import caption_http_client as client
+import image_caption_publisher.caption_http_client as client
 from sensor_msgs.msg import Image
 from std_msgs.msg import String
 from cv_bridge import CvBridge
@@ -19,7 +19,7 @@ class ImageCaptionGeneratorNode(Node):
         self.image_topic = self.get_parameter('image_topic').value
         self.caption_topic = self.get_parameter('caption_topic').value
         self.caption_interval = self.get_parameter('caption_interval').value
-        self.http_client = client.HttpClient(timeout=2.0)
+        self.http_client = client.HttpClient(timeout=4.0) # Increased timeout to accommodate higher latency on the first caption request.
         
         # Setup
         self.bridge = CvBridge()
@@ -46,12 +46,18 @@ class ImageCaptionGeneratorNode(Node):
         """
         if self.current_image is None: return 
 
-        caption = self.http_client.generate_caption(self.current_image)
-        if caption:
-            msg = String()
-            msg.data = caption
-            self.caption_pub.publish(msg)
-            self.get_logger().info(f'caption generated: {caption}')
+        if self.http_client.caption_future is not None and self.http_client.caption_future.done():
+                caption = self.http_client.caption_future.result()
+                self.http_client.caption_future = None
+
+                if caption:
+                    msg = String()
+                    msg.data = caption
+                    self.caption_pub.publish(msg)
+                    self.get_logger().info(f'caption generated: {caption}')
+    
+        if self.http_client.caption_future is None:
+            self.http_client.caption_future = self.http_client.executor_pool.submit(self.http_client.generate_caption, self.current_image)
 
 def main(args=None):
     rclpy.init(args=args)
