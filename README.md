@@ -21,7 +21,7 @@ https://github.com/user-attachments/assets/975c9b2d-d9b8-412c-bbc5-55d7926b06d1
 
 ### High Level Architecture 
 
-<img width="639" height="491" alt="image" src="https://github.com/user-attachments/assets/fd341f38-c829-429c-8873-13eb0870a469" />
+<img width="662" height="499" alt="image" src="https://github.com/user-attachments/assets/b29e40fa-c280-476f-8c27-ce1c83e096ab" />
 
 <br>
 
