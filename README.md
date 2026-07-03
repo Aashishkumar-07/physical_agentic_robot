@@ -16,8 +16,14 @@
 ### Overview 
 A robotics and AI project exploring how autonomous agents can perceive, remember, reason and act inside physical environments using ROS2, AI models, semantic vector memory and agentic planning workflows.
 
-### Physical Agent Robot Demo
-https://github.com/user-attachments/assets/975c9b2d-d9b8-412c-bbc5-55d7926b06d1
+### Physical Agentic Robot Demo
+
+<a href="https://drive.google.com/file/d/11cDfUFdwSzMtUQlLtBTUd4bz7bUHm_dE/view?usp=sharing" target="_blank">
+ <img width="1367" height="701" alt="Watch Demo Video" src="https://github.com/user-attachments/assets/97fad3fc-693c-4660-b0e3-ecfaedf0e026" />
+</a>
+<p align="center">
+  ▶️ <b>Click the image to watch the demo video</b>
+</p>
 
 ### High Level Architecture 
 
@@ -36,10 +42,6 @@ https://github.com/user-attachments/assets/975c9b2d-d9b8-412c-bbc5-55d7926b06d1
 
 <img width="1211" height="417" alt="image" src="https://github.com/user-attachments/assets/d0a0dcd1-dd3b-467c-b5e4-2b38de972934" />
 
-### LangGraph Workflow
-<img width="216" height="249" alt="langgraph" src="https://github.com/user-attachments/assets/80c5a446-4e14-4780-9880-2727e8ac5546" />
-
-<br>
 
 ### Repository Packages Overview
 
