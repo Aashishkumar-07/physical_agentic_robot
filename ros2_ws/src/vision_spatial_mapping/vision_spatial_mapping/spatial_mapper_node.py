@@ -1,17 +1,25 @@
-from my_robot_interfaces.srv import GenerateCaption
+from concurrent.futures import ThreadPoolExecutor
 from my_robot_interfaces.msg import RgbImageDepth
 from tf2_geometry_msgs import do_transform_point
 from geometry_msgs.msg import PointStamped
+from .mqtt_publisher import MQTTPublisher
 from sensor_msgs.msg import CameraInfo
 from rclpy.duration import Duration
+from dotenv import load_dotenv
 from cv_bridge import CvBridge
 from rclpy.node import Node 
 import numpy as np
-import requests
+import supabase
 import tf2_ros
 import rclpy
-import time
 import cv2
+import uuid
+import os
+
+load_dotenv()
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_API_SECRET_KEY")
+BUCKET_NAME  = os.getenv("BUCKET_NAME")
 
 
 class SpatialGroundingNode(Node):
@@ -34,6 +42,12 @@ class SpatialGroundingNode(Node):
         self.process_interval_sec = 1 
         self.latest_rgb_image_depth_msg = None
 
+        # MQTT publisher
+        self.mqtt_publisher = MQTTPublisher()
+        self.supabase_client = supabase.create_client(SUPABASE_URL, SUPABASE_KEY)
+
+        self.thread_pool = ThreadPoolExecutor(max_workers=3)
+
         self.tf_buffer = tf2_ros.Buffer(cache_time=Duration(seconds=15))
         listener = tf2_ros.TransformListener(self.tf_buffer, self)
         self.bridge = CvBridge()
@@ -42,10 +56,6 @@ class SpatialGroundingNode(Node):
         self.camera_info_subscriber = self.create_subscription(CameraInfo, '/camera/camera_info', self.callback_get_camera_info, 1)
         self.raw_image_depth_subscriber = self.create_subscription(RgbImageDepth, self.raw_depth_image_topic, self.rgbd_callback, 10)
         self.timer = self.create_timer(self.process_interval_sec, self.callback_get_coordinate_in_map)
-        self.caption_generator_client = self.create_client(GenerateCaption, 'generate_caption')
-        while not self.caption_generator_client.wait_for_service(1.0):
-            self.get_logger().warning("Waiting for caption service...")
-
 
     def rgbd_callback(self, msg):
         """Store latest image"""
@@ -64,7 +74,7 @@ class SpatialGroundingNode(Node):
 
         self.get_logger().info(f"Camera intrinsics received -> fx: {self.fx:.3f}, fy: {self.fy:.3f}, cx: {self.cx:.3f}, cy: {self.cy:.3f}")
 
-        # Destroy the subscriber once camera_info is obtained
+        # Destroy the subscriber, once camera_info is obtained
         self.destroy_subscription(self.camera_info_subscriber)
         self.received_camera_info = True
 
@@ -120,59 +130,58 @@ class SpatialGroundingNode(Node):
             p_map = do_transform_point(p_cam, transform_robot)
             self.get_logger().info(f"Point in map frame: X={p_map.point.x}, Y={p_map.point.y}, Z={p_map.point.z}")
 
-            self.get_caption_from_image(self.latest_rgb_image_depth_msg.camera_image, p_map) 
-               
+            # Need to revisit for performance on threading count
+            future = self.thread_pool.submit(
+                self.upload_and_publish,
+                self.latest_rgb_image_depth_msg.camera_image,
+                p_map
+            )
+                        
         except Exception as e:
             self.get_logger().warn(f"Error occurred: {e}")
 
-    def get_caption_from_image(self, image, p_map):
-        try:
-            req = GenerateCaption.Request()
-            req.image = image
-        
-            self.get_logger().info("Sending image to caption generation service...")
-            future = self.caption_generator_client.call_async(req)
+    def upload_image_to_supabase(self, image):
+        self.get_logger().info("Uploading image to Supabase...")
+        cv_image = self.bridge.imgmsg_to_cv2(image, desired_encoding='bgr8')
+        _, buffer = cv2.imencode('.jpg', cv_image)
+        image_bytes = buffer.tobytes()
+        image_path = f"img_{uuid.uuid4()}.jpg"
 
-            future.add_done_callback(
-                lambda f: self.handle_caption_response(f, image, p_map)
-            )
-
-        except Exception as e:
-            self.get_logger().warn(f"Service call failed: {e}")
-    
-    def handle_caption_response(self, future, image, p_map):
-        try:
-            result = future.result()
-            if result is None:
-                self.get_logger().warn("Caption service returned None")
-                return
-            if result.caption == '': 
-                self.get_logger().warn("Caption generation returned empty string, skipping API call.")
-                return
-            
-            cv_image = self.bridge.imgmsg_to_cv2(image, desired_encoding='bgr8')
-            _, buffer = cv2.imencode('.jpg', cv_image)
-
-            # Making http call to clip_faiss_server
-            files = {'file': ('image.jpg', buffer.tobytes(), 'image/jpeg')}
-            data = {
-                'x': str(p_map.point.x),
-                'y': str(p_map.point.y),
-                'z': str(p_map.point.z),
-                'caption' : result.caption
+        response = self.supabase_client.storage.from_(BUCKET_NAME).upload(
+            path=image_path,
+            file=image_bytes,
+            file_options={
+                "content-type": "image/jpg"
             }
-            self.get_logger().info(f"Making API call with data: {data}")
-            response = requests.post("http://127.0.0.1:8000/create_embedding", files=files, data=data)
-            self.get_logger().info(f"Response: {response.json()}")
+        )
+        self.get_logger().info(f"response from supabase upload: {response}")
+        return image_path
 
-            if response.status_code == 200:
-                self.get_logger().info(f"Response: {response.json()}")
-            else:
-                self.get_logger().warn(f"API error: {response.status_code}")
-
+    def publish_to_mqtt(self, image_path, p_map):
+        try:
+            self.get_logger().info(f"Publishing to MQTT: image_path={image_path}, coordinates=({p_map.point.x}, {p_map.point.y}, {p_map.point.z})")
+            payload = {
+                "image_path": image_path,
+                "coordinate": {
+                    "x": p_map.point.x,
+                    "y": p_map.point.y,
+                    "z": p_map.point.z
+                }
+            }
+            success = self.mqtt_publisher.publish(payload)
+            if not success:
+                self.get_logger().error("Failed to publish message")
         except Exception as e:
-            self.get_logger().warn(f"Request failed: {e}")
-
+            self.get_logger().error(f"Failed to publish: {e}")
+    
+    def upload_and_publish(self, image, p_map):
+        try:
+            image_path = self.upload_image_to_supabase(image)
+            self.publish_to_mqtt(image_path, p_map)
+        except Exception as e:
+            self.get_logger().error(f"Failure in upload_and_publish: {e}")
+            return None
+        
 def main(args = None):
     rclpy.init(args = args)
     node = SpatialGroundingNode()
@@ -183,6 +192,7 @@ def main(args = None):
         node.get_logger().info("Shutting down node...")
     finally:
         node.destroy_node()  
+        node.mqtt_publisher.disconnect()
         node.thread_pool.shutdown(wait=True) 
         rclpy.shutdown()
 

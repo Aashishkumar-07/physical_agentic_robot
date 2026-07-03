@@ -6,7 +6,3 @@
 	path = ros2_ws/src/Depth-Anything-3-ROS2
 	url = https://github.com/Aashishkumar-07/Depth-Anything-3-ROS2.git
 	branch = feature/vision-spatial-depth-topic
-[submodule "ros2_ws/src/fastvlm_ros"]
-	path = ros2_ws/src/fastvlm_ros
-	url = https://github.com/Aashishkumar-07/fastvlm_ros.git
-	branch = main

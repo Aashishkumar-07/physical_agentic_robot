@@ -1,0 +1,11 @@
+broker:
+  host: !ENV ${MQTT_HOST:localhost}
+  port: !ENV ${MQTT_PORT:1883}
+  username: !ENV ${MQTT_USERNAME:guest}
+  password: !ENV ${MQTT_PASSWORD:guest}
+
+publisher:
+  topic: !ENV ${MQTT_TOPIC:robot/vision/frames}
+  qos: !ENV ${MQTT_QOS:1}
+  client_id: !ENV ${MQTT_CLIENT_ID:vision_spatial_mapping_publisher}
+

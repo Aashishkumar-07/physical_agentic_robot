@@ -1,15 +1,11 @@
 from setuptools import find_packages, setup
 
-package_name = 'vision_spatial_mapping'
+package_name = 'image_caption_publisher'
 
 setup(
     name=package_name,
     version='0.0.0',
     packages=find_packages(exclude=['test']),
-    package_data={
-        package_name: ['mqtt_config.yaml'],
-    },
-    include_package_data=True,
     data_files=[
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
@@ -28,7 +24,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            "spatial_grounding_node = vision_spatial_mapping.spatial_mapper_node:main"
+            'image_caption_publisher_node = image_caption_publisher.image_caption_generator:main',
         ],
     },
 )
